@@ -1,0 +1,117 @@
+Controleo3 Profile  // This must be the first item in the file
+
+# The MIT License (MIT)
+# Copyright (c) 2024 Victoria Makerspace Association
+# https://opensource.org/licenses/MIT
+
+// About this profile:
+// - designed to reflow leaded solder paste using Kester Reflow Profile for 
+//   alloys: Sn63Pb37 or Sn62Pb36Ag02
+// - typical runtime of 5:30 minutes on the Makerspace reflow oven.  Measured 
+//   from start of run, to max reflow temperature reached, ending on drop to 183C liquidus
+// - attempts to reach 235C peak
+// - typical observed measurements for this profile:
+//   pre-heat time (start to 140C): 100s
+//   soak time (140C to 165C): 100s
+//   reflow time (183C to peak, peak to 183C): 90s
+//   total runtime (start to peak, peak to 183C): 5min 20s
+
+// Notes:
+// 1. Comment lines can start with # or //
+// 2. Comments can start after a token (e.g. Door close 1s // Close the oven door in 1 second)
+// 3. Tokens are case-insensitive
+// 4. End of line character can be CR or LF (or both, in any order)
+// 5. Number delimiters can be any non-digit character (30/40/50 = 30,40,50 = 30 40 50)
+// 6. When reading in profile files, Arduino's Serial Monitor will show debugging information
+
+// The name of this profile
+Name "Makerspace Leaded paste 235~C"
+// The title is displayed in the top-left corner
+Title "Reflow"
+// Show a graph on the display, including the 183 degC liquidus temperature
+Show graph to 250C for 600 seconds
+Graph divider at 183C
+// The deviation (in Celsius) above which to abort
+Deviation to abort 25C
+// The maximum temperature.  If exceeded, reflow will abort and the oven door opens
+Maximum temperature 250C
+// Set a maximum duty cycle to avoid damage to the oven (bottom/top/boost)
+Maximum duty 100/80/80
+
+// Close the oven door if it isn't already
+Close door over 1 second
+// Stop the timer for now, until the temperature is below 50C
+Stop timer
+// Wait for the oven to cool to get consistent results
+Display "Waiting for oven to cool to 50~C"
+Wait until below 50C
+
+Start timer
+Start plotting at 0 seconds
+
+// ============= PRE-HEAT =============
+Display "Phase: Pre-Heat to 140C at MAX power"
+// pre-heat as fast as possible (limited only by "Maximum duty" command above)
+
+Element duty cycle 100/100/100
+// stop the max heating at 120C as the heating elements have thermal inertia that will 
+// continue increasing the oven temperature to the desired 140C
+Wait until above 120C
+Maintain 140C for 20 seconds 
+
+// ============= SOAK =============
+Display "Phase: Soak 140C to 165C"
+// want 100s soak time
+// Select the heating bias (bottom/top/boost)
+Bias 100/50/80
+// Slow increase in temperature during soak
+// want 100s total soak time, but PID always takes longer than programmed,
+// so set a shorter time
+Ramp temperature to 165C in 80s  
+
+// ============= REFLOW =============
+Display "Phase: Reflow (boost) for 10s"
+// Force the elements on for a short while to get a quick increase in
+// the temperature of the elements (bottom/top/boost)
+// This will be limited by the "Maximum duty" command above
+Element duty cycle 100/100/100
+Wait for 10 seconds
+Display "Phase: Reflow to 235C"
+// Select the heating bias (bottom/top/boost)
+Bias 100/80/70
+// Ramp up the temperature for reflow.
+// want 60s to reach max temperature, but PID always takes longer than programmed,
+// so set a shorter time.  Also, the elements have inertia which takes the temperature 
+// higher than the programmed temperature.  Set a lower temperature to compensate.
+Ramp temperature to 225C in 50s
+
+// Hold the temperature at peak for 15 seconds
+Display "Phase: Reflow - hold for 15s"
+Maintain 235C for 15 seconds
+
+// ============= COOLING =============
+Display "Phase: Cooling"
+// Turn the elements off (bottom/top/boost)
+Element duty cycle 0/0/0
+// Open the oven door
+Open door over 10 seconds
+// Wait for the door to open
+Wait for 10 seconds
+// Wait for the temperature to drop below liquidus
+Wait until below 183C
+Stop timer
+
+// Wait for the temperature to drop below 100C
+Wait until below 100C
+
+// Boards can be removed now
+Display "Boards can be removed now"
+// Play a tune that the reflow is done
+Play tune
+// Wait for the temperature to drop further
+Wait until below 50C
+
+// Reflow is done now
+Display "Reflow complete!"
+// Close the oven door
+Close door over 3 seconds
