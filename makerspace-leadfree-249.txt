@@ -1,0 +1,109 @@
+Controleo3 Profile  // This must be the first item in the file
+
+# The MIT License (MIT)
+# Copyright (c) 2025 Victoria Makerspace Association
+# https://opensource.org/licenses/MIT
+
+// About this profile:
+// - designed to reflow lead free solder paste using Chipquik Reflow Profile for 
+//   alloy: Sn96.5/Ag3.0/Cu0.5
+// - typical runtime of 5:20 minutes on the Makerspace reflow oven.  Measured 
+//   from start of run, to max reflow temperature reached, ending on drop to 217C liquidus
+// - attempts to reach 249C peak
+// - typical observed measurements for this profile:
+//   pre-heat time (start to 150C): 131s
+//   soak time (150C to 175C): 103s
+//   reflow time (217C to peak, peak to 217C): 70s
+//   total runtime (start to peak, peak to 217C): 5min 10s
+
+// The name of this profile
+Name "Makerspace Lead-free paste 249~C"
+// The title is displayed in the top-left corner
+Title "Reflow"
+// Show a graph on the display, including the 217 degC liquidus temperature
+Show graph to 260C for 600 seconds
+Graph divider at 217C
+// The deviation (in Celsius) above which to abort
+Deviation to abort 25C
+// The maximum temperature.  If exceeded, reflow will abort and the oven door opens
+Maximum temperature 270C
+// Set a maximum duty cycle to avoid damage to the oven (bottom/top/boost)
+Maximum duty 100/80/80
+
+// Close the oven door if it isn't already
+Close door over 1 second
+// Stop the timer for now, until the temperature is below 50C
+Stop timer
+// Wait for the oven to cool to get consistent results
+Display "Waiting for oven to cool to 50~C"
+Wait until below 50C
+
+Start timer
+Start plotting at 0 seconds
+
+// ============= PRE-HEAT =============
+Display "Phase: Pre-Heat to 150C at MAX power"
+// pre-heat as fast as possible (limited only by "Maximum duty" command above)
+
+Element duty cycle 100/100/100
+// stop the max heating at 135C as the heating elements have thermal inertia that will 
+// continue increasing the oven temperature to the desired 150C
+Wait until above 135C
+Maintain 150C for 20 seconds 
+
+// ============= SOAK =============
+Display "Phase: Soak 150C to 175C"
+// want 100s soak time
+// Select the heating bias (bottom/top/boost)
+Bias 100/50/80
+// Slow increase in temperature during soak
+// want 100s total soak time, but PID always takes longer than programmed,
+// so set a shorter time
+Ramp temperature to 175C in 80s  
+
+// ============= REFLOW =============
+Display "Phase: Reflow (boost) for 10s"
+// Force the elements on for a short while to get a quick increase in
+// the temperature of the elements (bottom/top/boost)
+// This will be limited by the "Maximum duty" command above
+Element duty cycle 100/100/100
+Wait for 10 seconds
+Display "Phase: Reflow to 249C"
+// Select the heating bias (bottom/top/boost)
+Bias 100/80/70
+// Ramp up the temperature for reflow.
+// want 60s to reach max temperature, but PID always takes longer than programmed,
+// so set a shorter time.  Also, the elements have inertia which takes the temperature 
+// higher than the programmed temperature.  Set a lower temperature to compensate.
+Ramp temperature to 239C in 50s
+
+// Hold the temperature at peak for 15 seconds
+Display "Phase: Reflow - hold for 15s"
+Maintain 249C for 15 seconds
+
+// ============= COOLING =============
+Display "Phase: Cooling"
+// Turn the elements off (bottom/top/boost)
+Element duty cycle 0/0/0
+// Open the oven door
+Open door over 10 seconds
+// Wait for the door to open
+Wait for 10 seconds
+// Wait for the temperature to drop below liquidus
+Wait until below 217C
+Stop timer
+
+// Wait for the temperature to drop below 100C
+Wait until below 100C
+
+// Boards can be removed now
+Display "Boards can be removed now"
+// Play a tune that the reflow is done
+Play tune
+// Wait for the temperature to drop further
+Wait until below 50C
+
+// Reflow is done now
+Display "Reflow complete!"
+// Close the oven door
+Close door over 3 seconds
